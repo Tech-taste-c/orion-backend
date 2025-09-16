@@ -38,3 +38,13 @@ model Admin {
   role      String
   createdAt DateTime @default(now())
 }
+
+model Course {
+  id          Int      @id @default(autoincrement())
+  courseId    String
+  title       String
+  description String
+  status      String
+  cost        Float
+  createdAt   DateTime @default(now())
+}

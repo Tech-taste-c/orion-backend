@@ -30,6 +30,7 @@ model Student {
 
   studentCourses StudentCourse[]   // relation back to StudentCourse
   studentExams StudentExam[]
+  studentCertificates StudentCertificate[]
 }
 
 model Admin {
@@ -42,6 +43,7 @@ model Admin {
   createdAt DateTime @default(now())
 
   exams Exam[]
+  studentCertificates StudentCertificate[]
 }
 
 model Course {
@@ -56,6 +58,7 @@ model Course {
 
   studentCourses StudentCourse[]   // relation back to StudentCourse
   exams Exam[]
+  certificates Certificate[]
 }
 
 model StudentCourse {
@@ -116,4 +119,28 @@ model StudentExam {
   exam    Exam    @relation(fields: [examId], references: [id])
 
   @@unique([studentId, examId])
+}
+
+model Certificate {
+  id        Int     @id @default(autoincrement())
+  certId    String  @unique
+  certName  String
+  courseId  Int
+
+  course    Course  @relation(fields: [courseId], references: [id])
+  studentCertificates StudentCertificate[]
+}
+
+model StudentCertificate {
+  id        Int       @id @default(autoincrement())
+  studentId Int
+  certId    Int
+  issuedAt  DateTime  @default(now())
+  issuedBy  Int       // Admin ID
+
+  student   Student    @relation(fields: [studentId], references: [id])
+  certificate Certificate @relation(fields: [certId], references: [id])
+  admin     Admin      @relation(fields: [issuedBy], references: [id])
+
+  @@unique([studentId, certId])
 }

@@ -52,4 +52,16 @@ export class ExamsController {
   async getStudentExams(@Param('id', ParseIntPipe) studentId: number) {
     return this.examsService.getStudentExams(studentId);
   }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get a specific exam with all questions and options',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Exam details including questions and options',
+  })
+  async getExam(@Param('id', ParseIntPipe) id: number) {
+    return this.examsService.getExamById(id);
+  }
 }

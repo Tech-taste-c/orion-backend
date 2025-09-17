@@ -86,4 +86,18 @@ export class ExamsService {
       include: { exam: true },
     });
   }
+
+  async getExamById(examId: number) {
+    const exam = await this.prisma.exam.findUnique({
+      where: { id: examId },
+      include: {
+        questions: {
+          include: { options: true },
+        },
+      },
+    });
+
+    if (!exam) throw new NotFoundException('Exam not found');
+    return exam;
+  }
 }

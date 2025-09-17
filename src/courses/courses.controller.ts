@@ -39,6 +39,7 @@ export class CoursesController {
     description: 'Course created successfully',
     type: CourseResponseDto,
   })
+  @ApiResponse({ status: 409, description: 'Course courseId already exists' })
   async createCourse(@Body() body: CreateCourseDto): Promise<Course> {
     return this.coursesService.create(body);
   }
@@ -52,6 +53,7 @@ export class CoursesController {
     type: CourseResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Course not found' })
+  @ApiResponse({ status: 409, description: 'Course courseId already exists' })
   async updateCourse(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateCourseDto,

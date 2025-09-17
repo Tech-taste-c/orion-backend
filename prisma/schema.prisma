@@ -27,6 +27,9 @@ model Student {
   phone      String
   password   String   // hashed
   createdAt  DateTime @default(now())
+
+  studentCourses StudentCourse[]   // relation back to StudentCourse
+  studentExams StudentExam[]
 }
 
 model Admin {
@@ -37,14 +40,80 @@ model Admin {
   password  String
   role      String
   createdAt DateTime @default(now())
+
+  exams Exam[]
 }
 
 model Course {
   id          Int      @id @default(autoincrement())
-  courseId    String
+  courseId    String   @unique   // 🔑 make courseId unique
   title       String
   description String
   status      String
   cost        Float
+  duration    Float    // duration in hours, e.g. 3 or 3.5
   createdAt   DateTime @default(now())
+
+  studentCourses StudentCourse[]   // relation back to StudentCourse
+  exams Exam[]
+}
+
+model StudentCourse {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  courseId   Int
+  enrolledAt DateTime @default(now())
+  status     String   @default("enrolled")
+
+  student    Student  @relation(fields: [studentId], references: [id])
+  course     Course   @relation(fields: [courseId], references: [id])
+
+  @@unique([studentId, courseId])
+}
+
+model Exam {
+  id          Int      @id @default(autoincrement())
+  name        String
+  courseId    Int
+  passMark    Float
+  createdBy   Int      // Admin ID
+  duration    Float    // in hours
+  dateCreated DateTime @default(now())
+
+  course  Course @relation(fields: [courseId], references: [id])
+  admin   Admin  @relation(fields: [createdBy], references: [id])
+  studentExams StudentExam[]
+  questions     ExamQuestion[]
+}
+
+model ExamQuestion {
+  id        Int      @id @default(autoincrement())
+  examId    Int
+  questionText String
+  marks     Float
+
+  exam       Exam           @relation(fields: [examId], references: [id])
+  options    QuestionOption[]
+}
+
+model QuestionOption {
+  id          Int     @id @default(autoincrement())
+  questionId  Int
+  optionText  String
+  isCorrect   Boolean
+
+  question    ExamQuestion @relation(fields: [questionId], references: [id])
+}
+
+model StudentExam {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  examId    Int
+  score     Float?
+  takenAt   DateTime?
+
+  student Student @relation(fields: [studentId], references: [id])
+  exam    Exam    @relation(fields: [examId], references: [id])
+
+  @@unique([studentId, examId])
 }

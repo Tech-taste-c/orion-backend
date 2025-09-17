@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -9,6 +13,15 @@ export class CoursesService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateCourseDto): Promise<Course> {
+    // Check if a course with the same title exists
+    const exists = await this.prisma.course.findUnique({
+      where: { courseId: data.courseId },
+    });
+    if (exists) {
+      throw new ConflictException(
+        `Course with courseId "${data.courseId}" already exists`,
+      );
+    }
     return this.prisma.course.create({ data });
   }
 
@@ -19,6 +32,17 @@ export class CoursesService {
   async update(id: number, data: UpdateCourseDto): Promise<Course> {
     const exists = await this.prisma.course.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException(`Course ${id} not found`);
+    // optional: if updating courseId, check for duplicate
+    if (data.courseId) {
+      const exists = await this.prisma.course.findUnique({
+        where: { courseId: data.courseId },
+      });
+      if (exists && exists.id !== id) {
+        throw new ConflictException(
+          `Course with courseId "${data.courseId}" already exists`,
+        );
+      }
+    }
     return this.prisma.course.update({ where: { id }, data });
   }
 

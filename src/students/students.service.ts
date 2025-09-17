@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -57,5 +58,20 @@ export class StudentsService {
       email: student.email,
       phone: student.phone,
     };
+  }
+
+  async getEnrolledCourses(studentId: number) {
+    // Ensure student exists
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+    });
+    if (!student) throw new NotFoundException('Student not found');
+
+    return this.prisma.studentCourse.findMany({
+      where: { studentId },
+      include: {
+        course: true, // includes full course details
+      },
+    });
   }
 }

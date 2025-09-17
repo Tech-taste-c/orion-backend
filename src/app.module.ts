@@ -6,9 +6,18 @@ import { StudentsModule } from './students/students.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AdminsModule } from './admins/admins.module';
 import { CoursesModule } from './courses/courses.module';
+import { StudentCourseModule } from './student-course/student-course.module';
+import { ExamsModule } from './exams/exams.module';
 
 @Module({
-  imports: [StudentsModule, PrismaModule, AdminsModule, CoursesModule],
+  imports: [
+    StudentsModule,
+    PrismaModule,
+    AdminsModule,
+    CoursesModule,
+    StudentCourseModule,
+    ExamsModule,
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

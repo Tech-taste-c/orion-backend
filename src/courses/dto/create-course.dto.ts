@@ -25,4 +25,8 @@ export class CreateCourseDto {
   @ApiProperty({ example: 99.99, description: 'Cost in dollars' })
   @IsNumber()
   cost: number;
+
+  @ApiProperty({ example: 3.5, description: 'Duration in hours (e.g. 3.5)' })
+  @IsNumber()
+  duration: number;
 }

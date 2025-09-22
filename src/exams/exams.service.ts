@@ -2,10 +2,12 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { TakeExamDto } from './dto/student-exam.dto';
+import { CreateStudentExamAnswerDto } from './dto/create-student-exam-answer.dto';
 
 @Injectable()
 export class ExamsService {
@@ -92,12 +94,82 @@ export class ExamsService {
       where: { id: examId },
       include: {
         questions: {
-          include: { options: true },
+          include: {
+            options: {
+              select: {
+                id: true,
+                optionText: true,
+              },
+            },
+          },
         },
       },
     });
 
     if (!exam) throw new NotFoundException('Exam not found');
     return exam;
+  }
+
+  async saveStudentExamAnswers(dto: CreateStudentExamAnswerDto) {
+    const { studentExamId, answers } = dto;
+
+    // Fetch StudentExam with related Exam and all questions + options
+    const studentExam = await this.prisma.studentExam.findUnique({
+      where: { id: studentExamId },
+      include: {
+        exam: {
+          include: {
+            questions: {
+              include: { options: true }, // include all options at once
+            },
+          },
+        },
+      },
+    });
+
+    if (!studentExam) throw new NotFoundException('StudentExam not found');
+
+    // 2️⃣ Validate submission time
+    const examStartTime = studentExam.takenAt;
+    const examDurationHours = studentExam.exam.duration;
+    const examEndTime = new Date(
+      examStartTime.getTime() + examDurationHours * 60 * 60 * 1000,
+    );
+
+    if (new Date() > examEndTime) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        message: 'Cannot submit exam: submission time is over.',
+        submittedAt: new Date(),
+        examEndTime: examEndTime,
+      });
+    }
+
+    // Save all answers
+    await this.prisma.studentExamAnswer.createMany({
+      data: answers.map((a) => ({
+        studentExamId,
+        questionId: a.questionId,
+        optionId: a.optionId,
+      })),
+    });
+
+    // Calculate total score
+    let totalScore = 0;
+    for (const q of studentExam.exam.questions) {
+      const studentAnswer = answers.find((a) => a.questionId === q.id);
+      if (!studentAnswer) continue;
+
+      const correctOption = q.options.find((o) => o.isCorrect);
+      if (correctOption && correctOption.id === studentAnswer.optionId) {
+        totalScore += q.marks;
+      }
+    }
+
+    // Update StudentExam with calculated score
+    return this.prisma.studentExam.update({
+      where: { id: studentExamId },
+      data: { score: totalScore },
+    });
   }
 }

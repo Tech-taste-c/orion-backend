@@ -11,6 +11,7 @@ import { ExamsService } from './exams.service';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { ExamResponseDto } from './dto/exam-response.dto';
 import { TakeExamDto } from './dto/student-exam.dto';
+import { CreateStudentExamAnswerDto } from './dto/create-student-exam-answer.dto';
 
 @ApiTags('exams')
 @Controller('exams')
@@ -39,8 +40,8 @@ export class ExamsController {
     return this.examsService.getAllExams();
   }
 
-  @Post('take')
-  @ApiOperation({ summary: 'Student takes an exam' })
+  @Post('start')
+  @ApiOperation({ summary: 'Student start an exam' })
   @ApiResponse({ status: 201, description: 'Student exam recorded' })
   async takeExam(@Body() dto: TakeExamDto) {
     return this.examsService.takeExam(dto);
@@ -63,5 +64,12 @@ export class ExamsController {
   })
   async getExam(@Param('id', ParseIntPipe) id: number) {
     return this.examsService.getExamById(id);
+  }
+
+  @Post('submit-answers')
+  @ApiOperation({ summary: 'Save answers for an exam attempt' })
+  @ApiResponse({ status: 201, description: 'Answers recorded' })
+  async saveAnswers(@Body() dto: CreateStudentExamAnswerDto) {
+    return this.examsService.saveStudentExamAnswers(dto);
   }
 }

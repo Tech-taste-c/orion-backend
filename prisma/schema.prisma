@@ -26,7 +26,9 @@ model Student {
   email      String   @unique
   phone      String
   password   String   // hashed
-  createdAt  DateTime @default(now())
+  status    String   @default("active")   // ✅ New field
+  createdAt DateTime @default(now())
+  updatedAt DateTime?
 
   studentCourses StudentCourse[]   // relation back to StudentCourse
   studentExams StudentExam[]
@@ -97,6 +99,7 @@ model ExamQuestion {
 
   exam       Exam           @relation(fields: [examId], references: [id])
   options    QuestionOption[]
+  studentExamAnswers StudentExamAnswer[]
 }
 
 model QuestionOption {
@@ -106,6 +109,7 @@ model QuestionOption {
   isCorrect   Boolean
 
   question    ExamQuestion @relation(fields: [questionId], references: [id])
+  studentExamAnswers StudentExamAnswer[]
 }
 
 model StudentExam {
@@ -113,10 +117,11 @@ model StudentExam {
   studentId Int
   examId    Int
   score     Float?
-  takenAt   DateTime?
+  takenAt   DateTime @default(now())
 
   student Student @relation(fields: [studentId], references: [id])
   exam    Exam    @relation(fields: [examId], references: [id])
+  studentExamAnswers StudentExamAnswer[]
 
   @@unique([studentId, examId])
 }
@@ -143,4 +148,16 @@ model StudentCertificate {
   admin     Admin      @relation(fields: [issuedBy], references: [id])
 
   @@unique([studentId, certId])
+}
+
+model StudentExamAnswer {
+  id          Int      @id @default(autoincrement())
+  studentExamId Int    // FK → StudentExam
+  questionId   Int     // FK → ExamQuestion
+  optionId     Int     // FK → QuestionOption
+
+  // Relations
+  studentExam  StudentExam   @relation(fields: [studentExamId], references: [id])
+  question     ExamQuestion  @relation(fields: [questionId], references: [id])
+  option       QuestionOption @relation(fields: [optionId], references: [id])
 }

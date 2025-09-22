@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { LoginStudentDto } from './dto/login-student.dto';
+import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -72,6 +73,34 @@ export class StudentsService {
       include: {
         course: true, // includes full course details
       },
+    });
+  }
+
+  // Get all students with their enrolled courses and certificates
+  async getAllStudents() {
+    return this.prisma.student.findMany({
+      include: {
+        studentCourses: {
+          include: {
+            course: true, // brings full course details
+          },
+        },
+        studentCertificates: {
+          include: {
+            certificate: true, // brings full certificate details
+          },
+        },
+      },
+    });
+  }
+
+  async updateStatus(id: number, dto: UpdateStudentStatusDto) {
+    const student = await this.prisma.student.findUnique({ where: { id } });
+    if (!student) throw new NotFoundException('Student not found');
+
+    return this.prisma.student.update({
+      where: { id },
+      data: { status: dto.status },
     });
   }
 }

@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  Patch,
 } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -15,8 +16,10 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiResponse,
+  ApiParam,
 } from '@nestjs/swagger';
 import { EnrolledCourseResponseDto } from './dto/enrolled-course-response.dto';
+import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
 
 @ApiTags('students')
 @Controller('students')
@@ -58,5 +61,23 @@ export class StudentsController {
       cost: e.course.cost,
       enrolledAt: e.enrolledAt,
     }));
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all students' })
+  @ApiResponse({ status: 200, description: 'List of all students' })
+  async getAllStudents() {
+    return this.studentsService.getAllStudents();
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update a student status' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, description: 'Student status updated' })
+  async updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateStudentStatusDto,
+  ) {
+    return this.studentsService.updateStatus(id, dto);
   }
 }

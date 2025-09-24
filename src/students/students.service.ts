@@ -103,4 +103,20 @@ export class StudentsService {
       data: { status: dto.status },
     });
   }
+
+  async getStudentDashboardStats(studentId: number) {
+    const [completed, pending] = await Promise.all([
+      this.prisma.studentCourse.count({
+        where: { studentId, status: 'completed' },
+      }),
+      this.prisma.studentCourse.count({
+        where: { studentId, status: 'enrolled' }, // treat “enrolled” as pending
+      }),
+    ]);
+
+    return {
+      completedCourses: completed,
+      pendingCourses: pending,
+    };
+  }
 }

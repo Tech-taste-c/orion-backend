@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt } from 'class-validator';
+import { IsInt, IsNumber } from 'class-validator';
 
 export class GrantCertificateDto {
   @ApiProperty({ example: 1 })
@@ -13,4 +13,8 @@ export class GrantCertificateDto {
   @ApiProperty({ example: 1, description: 'Admin ID granting the certificate' })
   @IsInt()
   issuedBy: number;
+
+  @ApiProperty({ example: 70, description: 'Score' })
+  @IsNumber()
+  score: number;
 }

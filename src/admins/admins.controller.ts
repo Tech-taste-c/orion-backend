@@ -1,8 +1,14 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { AdminsService } from './admins.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { LoginAdminDto } from './dto/login-admin.dto';
-import { ApiTags, ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 @ApiTags('admins')
 @Controller('admins')
@@ -19,5 +25,15 @@ export class AdminsController {
   @ApiOkResponse({ description: 'Admin successfully signed in' })
   async signin(@Body() dto: LoginAdminDto) {
     return this.adminsService.login(dto);
+  }
+
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Admin dashboard stats' })
+  @ApiResponse({
+    status: 200,
+    description: 'Total students, active courses, and completion rate',
+  })
+  async getDashboardStats() {
+    return this.adminsService.getDashboardStats();
   }
 }

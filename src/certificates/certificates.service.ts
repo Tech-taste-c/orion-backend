@@ -60,7 +60,7 @@ export class CertificatesService {
   async getStudentCertificates(studentId: number) {
     return this.prisma.studentCertificate.findMany({
       where: { studentId },
-      include: { certificate: true, admin: true },
+      include: { certificate: true },
     });
   }
 }

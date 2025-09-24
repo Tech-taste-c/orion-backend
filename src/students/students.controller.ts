@@ -80,4 +80,14 @@ export class StudentsController {
   ) {
     return this.studentsService.updateStatus(id, dto);
   }
+
+  @Get(':id/dashboard')
+  @ApiOperation({ summary: 'Student dashboard stats' })
+  @ApiResponse({
+    status: 200,
+    description: 'Counts of completed and pending courses for the student',
+  })
+  async getStudentDashboard(@Param('id', ParseIntPipe) id: number) {
+    return this.studentsService.getStudentDashboardStats(id);
+  }
 }

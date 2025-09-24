@@ -58,4 +58,31 @@ export class AdminsService {
       role: admin.role,
     };
   }
+
+  async getDashboardStats() {
+    // total students
+    const totalStudents = await this.prisma.student.count();
+
+    // active courses
+    const activeCourses = await this.prisma.course.count({
+      where: { status: 'active' },
+    });
+
+    // completion rate = completed enrollments / total enrollments * 100
+    const [completed, totalEnrollments] = await Promise.all([
+      this.prisma.studentCourse.count({ where: { status: 'completed' } }),
+      this.prisma.studentCourse.count(),
+    ]);
+
+    const completionRate =
+      totalEnrollments === 0
+        ? 0
+        : Number(((completed / totalEnrollments) * 100).toFixed(2));
+
+    return {
+      totalStudents,
+      activeCourses,
+      completionRate, // percentage
+    };
+  }
 }

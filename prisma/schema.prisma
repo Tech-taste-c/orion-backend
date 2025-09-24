@@ -142,6 +142,7 @@ model StudentCertificate {
   certId    Int
   issuedAt  DateTime  @default(now())
   issuedBy  Int       // Admin ID
+  score     Float?
 
   student   Student    @relation(fields: [studentId], references: [id])
   certificate Certificate @relation(fields: [certId], references: [id])

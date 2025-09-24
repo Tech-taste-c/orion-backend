@@ -72,4 +72,26 @@ export class ExamsController {
   async saveAnswers(@Body() dto: CreateStudentExamAnswerDto) {
     return this.examsService.saveStudentExamAnswers(dto);
   }
+
+  @Get('submissions/all')
+  @ApiOperation({ summary: 'List all exam submissions' })
+  @ApiResponse({
+    status: 200,
+    description: 'Array of students exam submissions',
+  })
+  async getAllExamSubmissions() {
+    return this.examsService.getAllExamSubmissions();
+  }
+
+  @Get('submissions/:id')
+  @ApiOperation({
+    summary: 'Details of an exam submission with questions and answers',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Details of a student exam submission',
+  })
+  async getExamSubmission(@Param('id', ParseIntPipe) id: number) {
+    return this.examsService.getExamSubmission(id);
+  }
 }

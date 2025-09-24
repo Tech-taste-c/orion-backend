@@ -129,7 +129,7 @@ export class ExamsService {
 
     if (!studentExam) throw new NotFoundException('StudentExam not found');
 
-    // 2️⃣ Validate submission time
+    // Validate submission time
     const examStartTime = studentExam.takenAt;
     const examDurationHours = studentExam.exam.duration;
     const examEndTime = new Date(
@@ -171,5 +171,70 @@ export class ExamsService {
       where: { id: studentExamId },
       data: { score: totalScore },
     });
+  }
+
+  async getAllExamSubmissions() {
+    const submissions = await this.prisma.studentExam.findMany({
+      select: {
+        id: true,
+        score: true,
+        takenAt: true,
+
+        student: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+
+        exam: {
+          select: {
+            name: true,
+            passMark: true,
+            course: {
+              select: {
+                title: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { takenAt: 'desc' },
+    });
+    return submissions.map((s) => ({
+      ...s,
+      takenAt: s.takenAt.toISOString().split('T')[0], // keep only the date part
+    }));
+  }
+
+  async getExamSubmission(examSubId: number) {
+    const submission = await this.prisma.studentExam.findUnique({
+      // return this.prisma.studentExam.findUnique({
+      where: { id: examSubId },
+      include: {
+        student: true, // Student who took the exam
+        exam: {
+          // Exam details
+          include: {
+            course: true, // Related course info
+            questions: {
+              include: {
+                options: true, // Each question’s options
+              },
+            },
+          },
+        },
+        studentExamAnswers: {
+          // Answers submitted
+          include: {
+            question: true,
+            option: true,
+          },
+        },
+      },
+    });
+
+    if (!submission) throw new NotFoundException('Exam Submission not found');
+    return submission;
   }
 }

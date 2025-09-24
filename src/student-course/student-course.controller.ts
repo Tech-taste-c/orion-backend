@@ -29,10 +29,10 @@ export class StudentCourseController {
   }
 
   @Patch(':studentId/:courseId/complete')
-  @ApiOperation({ summary: 'Mark a student’s course enrollment as completed' })
+  @ApiOperation({ summary: 'Mark a student’s course status as completed' })
   @ApiResponse({
     status: 200,
-    description: 'Enrollment status updated to completed',
+    description: 'Course status updated to completed',
     type: StudentCourseResponseDto,
   })
   async markCompleted(

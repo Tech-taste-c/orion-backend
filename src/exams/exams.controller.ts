@@ -130,4 +130,16 @@ export class ExamsController {
   async getExamSubmission(@Param('id', ParseIntPipe) id: number) {
     return this.examsService.getExamSubmission(id);
   }
+
+  @Get('course/:courseId/newest')
+  @ApiOperation({ summary: 'Get the newest exam for a given course' })
+  @ApiResponse({
+    status: 200,
+    description: 'The most recently created exam for the course',
+  })
+  async getNewestExamForCourse(
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ) {
+    return this.examsService.getNewestExamForCourse(courseId);
+  }
 }

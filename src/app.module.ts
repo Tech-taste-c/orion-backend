@@ -9,6 +9,7 @@ import { CoursesModule } from './courses/courses.module';
 import { StudentCourseModule } from './student-course/student-course.module';
 import { ExamsModule } from './exams/exams.module';
 import { CertificatesModule } from './certificates/certificates.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { CertificatesModule } from './certificates/certificates.module';
     StudentCourseModule,
     ExamsModule,
     CertificatesModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

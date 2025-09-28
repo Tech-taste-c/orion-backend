@@ -58,6 +58,106 @@ export class ExamsService {
     return this.prisma.exam.findMany();
   }
 
+  /**
+   * Get all exams that a student has access to (based on their course enrollments)
+   * @param studentId - The student's ID
+   * @returns Promise<Exam[]> - List of accessible exams
+   */
+  async getStudentAccessibleExams(studentId: number) {
+    // Get all courses the student is enrolled in
+    const studentCourses = await this.prisma.studentCourse.findMany({
+      where: {
+        studentId: studentId,
+        status: 'enrolled',
+      },
+      select: { courseId: true },
+    });
+
+    const courseIds = studentCourses.map(sc => sc.courseId);
+
+    // Get all exams from those courses
+    return this.prisma.exam.findMany({
+      where: {
+        courseId: {
+          in: courseIds,
+        },
+      },
+      include: {
+        course: {
+          select: {
+            title: true,
+            courseId: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Check if a student has access to an exam
+   * @param studentId - The student's ID
+   * @param examId - The exam's ID
+   * @returns Promise<boolean> - True if student has access, false otherwise
+   */
+  private async checkStudentExamAccess(studentId: number, examId: number): Promise<boolean> {
+    const exam = await this.prisma.exam.findUnique({
+      where: { id: examId },
+      select: { courseId: true },
+    });
+
+    if (!exam) return false;
+
+    const studentCourse = await this.prisma.studentCourse.findUnique({
+      where: {
+        studentId_courseId: {
+          studentId: studentId,
+          courseId: exam.courseId,
+        },
+      },
+      select: { status: true },
+    });
+
+    return studentCourse?.status === 'enrolled';
+  }
+
+  async startExam(examId: number, studentId: number) {
+    // Ensure student exists
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+    });
+    if (!student) throw new NotFoundException('Student not found');
+
+    // Ensure exam exists
+    const exam = await this.prisma.exam.findUnique({
+      where: { id: examId },
+    });
+    if (!exam) throw new NotFoundException('Exam not found');
+
+    // Check if student has access to this exam
+    const hasAccess = await this.checkStudentExamAccess(studentId, examId);
+    if (!hasAccess) {
+      throw new ForbiddenException(
+        'You do not have access to this exam. Please enroll in the course first.',
+      );
+    }
+
+    // Prevent duplicate take
+    const existing = await this.prisma.studentExam.findUnique({
+      where: {
+        studentId_examId: { studentId, examId },
+      },
+    });
+    if (existing) throw new ConflictException('Exam already taken');
+
+    return this.prisma.studentExam.create({ 
+      data: { 
+        studentId, 
+        examId,
+        takenAt: new Date()
+      } 
+    });
+  }
+
   async takeExam(dto: TakeExamDto) {
     // Ensure student exists
     const student = await this.prisma.student.findUnique({

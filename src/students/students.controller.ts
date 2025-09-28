@@ -6,6 +6,8 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
@@ -17,9 +19,11 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { EnrolledCourseResponseDto } from './dto/enrolled-course-response.dto';
 import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('students')
 @Controller('students')
@@ -39,6 +43,8 @@ export class StudentsController {
   }
 
   @Get(':id/courses')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all courses a student has enrolled in' })
   @ApiResponse({
     status: 200,
@@ -64,6 +70,8 @@ export class StudentsController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get all students' })
   @ApiResponse({ status: 200, description: 'List of all students' })
   async getAllStudents() {
@@ -71,6 +79,8 @@ export class StudentsController {
   }
 
   @Patch(':id/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update a student status' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 200, description: 'Student status updated' })
@@ -82,6 +92,8 @@ export class StudentsController {
   }
 
   @Get(':id/dashboard')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Student dashboard stats' })
   @ApiResponse({
     status: 200,

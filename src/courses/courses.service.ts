@@ -52,4 +52,20 @@ export class CoursesService {
     await this.prisma.course.delete({ where: { id } });
     return { message: `Course ${id} deleted successfully` };
   }
+
+  async findOneWithRelations(id: number) {
+    const course = await this.prisma.course.findUnique({
+      where: { id },
+      include: {
+        exams: true,
+        certificates: true,
+      },
+    });
+
+    if (!course) {
+      throw new NotFoundException(`Course ${id} not found`);
+    }
+
+    return course;
+  }
 }

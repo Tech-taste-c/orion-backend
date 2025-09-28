@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CourseResponseDto } from './dto/course-response.dto';
+import { CourseWithRelationsDto } from './dto/course-with-relations.dto';
 import { Course } from '@prisma/client';
 
 @ApiTags('courses')
@@ -30,6 +31,21 @@ export class CoursesController {
   })
   async getCourses(): Promise<Course[]> {
     return this.coursesService.findAll();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get course by ID with exams and certificates' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({
+    status: 200,
+    description: 'Course with associated exams and certificates',
+    type: CourseWithRelationsDto,
+  })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  async getCourseById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<CourseWithRelationsDto> {
+    return this.coursesService.findOneWithRelations(id);
   }
 
   @Post()

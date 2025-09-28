@@ -8,11 +8,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { LoginStudentDto } from './dto/login-student.dto';
 import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class StudentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
   async create(data: CreateStudentDto) {
     const existing = await this.prisma.student.findUnique({
@@ -51,13 +55,25 @@ export class StudentsService {
     const valid = await bcrypt.compare(data.password, student.password);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    // For now just return student info (without password)
-    return {
-      id: student.id,
+    // Generate JWT token
+    const payload = { 
+      email: student.email, 
+      sub: student.id, 
+      type: 'student',
       firstName: student.firstName,
-      lastName: student.lastName,
-      email: student.email,
-      phone: student.phone,
+      lastName: student.lastName
+    };
+    
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: student.id,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        phone: student.phone,
+        type: 'student'
+      }
     };
   }
 
@@ -110,7 +126,7 @@ export class StudentsService {
         where: { studentId, status: 'completed' },
       }),
       this.prisma.studentCourse.count({
-        where: { studentId, status: 'enrolled' }, // treat “enrolled” as pending
+        where: { studentId, status: 'enrolled' }, // treat "enrolled" as pending
       }),
     ]);
 
@@ -118,5 +134,15 @@ export class StudentsService {
       completedCourses: completed,
       pendingCourses: pending,
     };
+  }
+
+  async findByEmail(email: string) {
+    return this.prisma.student.findUnique({
+      where: { email },
+    });
+  }
+
+  async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
+    return bcrypt.compare(password, hashedPassword);
   }
 }

@@ -6,11 +6,15 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { LoginAdminDto } from './dto/login-admin.dto';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
   // Sign up
   async create(data: CreateAdminDto) {
@@ -50,12 +54,26 @@ export class AdminsService {
     const valid = await bcrypt.compare(data.password, admin.password);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    return {
-      id: admin.id,
+    // Generate JWT token
+    const payload = { 
+      email: admin.email, 
+      sub: admin.id, 
+      type: 'admin',
       firstName: admin.firstName,
       lastName: admin.lastName,
-      email: admin.email,
-      role: admin.role,
+      role: admin.role
+    };
+    
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: admin.id,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        email: admin.email,
+        role: admin.role,
+        type: 'admin'
+      }
     };
   }
 
@@ -84,5 +102,15 @@ export class AdminsService {
       activeCourses,
       completionRate, // percentage
     };
+  }
+
+  async findByEmail(email: string) {
+    return this.prisma.admin.findUnique({
+      where: { email },
+    });
+  }
+
+  async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
+    return bcrypt.compare(password, hashedPassword);
   }
 }

@@ -309,17 +309,38 @@ export class ExamsService {
 
   async getExamSubmission(examSubId: number) {
     const submission = await this.prisma.studentExam.findUnique({
-      // return this.prisma.studentExam.findUnique({
       where: { id: examSubId },
       include: {
-        student: true, // Student who took the exam
+        student: {
+          // Student who took the exam
+          include: {
+            studentCertificates: {
+              // Student's certificates
+              include: {
+                certificate: true,
+                admin: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         exam: {
           // Exam details
           include: {
-            course: true, // Related course info
+            course: {
+              // Related course info
+              include: {
+                certificates: true, // All certificates available for this course
+              },
+            },
             questions: {
               include: {
-                options: true, // Each question’s options
+                options: true, // Each question's options
               },
             },
           },
@@ -335,7 +356,113 @@ export class ExamsService {
     });
 
     if (!submission) throw new NotFoundException('Exam Submission not found');
-    return submission;
+    
+    // Transform the response to return only one certificate (prioritize student certificate)
+    const studentCertificate = submission.student.studentCertificates.length > 0 
+      ? submission.student.studentCertificates[0] 
+      : null;
+    
+    const courseCertificate = submission.exam.course.certificates.length > 0 
+      ? submission.exam.course.certificates[0] 
+      : null;
+
+    // Use student certificate if available, otherwise use course certificate
+    const certificate = studentCertificate || courseCertificate;
+
+    const transformedSubmission = {
+      ...submission,
+      student: {
+        ...submission.student,
+        // Remove studentCertificates from response
+      },
+      exam: {
+        ...submission.exam,
+        course: {
+          ...submission.exam.course,
+          // Remove certificates from response
+        },
+      },
+      certificate: certificate,
+    };
+
+    return transformedSubmission;
+  }
+
+  /**
+   * Get certificate details for a specific exam submission
+   * @param examSubId - The exam submission ID
+   * @returns Promise<object> - Certificate details for the submission (first certificate only)
+   */
+  async getExamSubmissionCertificates(examSubId: number) {
+    const submission = await this.prisma.studentExam.findUnique({
+      where: { id: examSubId },
+      select: {
+        id: true,
+        studentId: true,
+        examId: true,
+        score: true,
+        student: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            studentCertificates: {
+              include: {
+                certificate: true,
+                admin: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        exam: {
+          select: {
+            course: {
+              select: {
+                certificates: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!submission) throw new NotFoundException('Exam Submission not found');
+    
+    // Transform to return only one certificate (prioritize student certificate)
+    const studentCertificate = submission.student.studentCertificates.length > 0 
+      ? submission.student.studentCertificates[0] 
+      : null;
+    
+    const courseCertificate = submission.exam.course.certificates.length > 0 
+      ? submission.exam.course.certificates[0] 
+      : null;
+
+    // Use student certificate if available, otherwise use course certificate
+    const certificate = studentCertificate || courseCertificate;
+
+    const transformedSubmission = {
+      ...submission,
+      student: {
+        ...submission.student,
+        // Remove studentCertificates from response
+      },
+      exam: {
+        ...submission.exam,
+        course: {
+          ...submission.exam.course,
+          // Remove certificates from response
+        },
+      },
+      certificate: certificate,
+    };
+
+    return transformedSubmission;
   }
 
   async getNewestExamForCourse(courseId: number) {

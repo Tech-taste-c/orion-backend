@@ -121,11 +121,71 @@ export class ExamsController {
 
   @Get('submissions/:id')
   @ApiOperation({
-    summary: 'Details of an exam submission with questions and answers',
+    summary: 'Details of an exam submission with questions, answers, and certificate information',
+    description: 'Returns comprehensive details of an exam submission including student information, exam details, submitted answers, and one certificate (prioritizes student certificate, falls back to course certificate).'
   })
   @ApiResponse({
     status: 200,
-    description: 'Details of a student exam submission',
+    description: 'Details of a student exam submission including certificate information',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number' },
+        studentId: { type: 'number' },
+        examId: { type: 'number' },
+        score: { type: 'number' },
+        takenAt: { type: 'string', format: 'date-time' },
+        student: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+            email: { type: 'string' }
+          }
+        },
+        exam: {
+          type: 'object',
+          properties: {
+            id: { type: 'number' },
+            name: { type: 'string' },
+            passMark: { type: 'number' },
+            course: {
+              type: 'object',
+              properties: {
+                id: { type: 'number' },
+                title: { type: 'string' }
+              }
+            }
+          }
+        },
+        certificate: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            id: { type: 'number' },
+            issuedAt: { type: 'string', format: 'date-time' },
+            score: { type: 'number' },
+            certificate: {
+              type: 'object',
+              properties: {
+                id: { type: 'number' },
+                certId: { type: 'string' },
+                certName: { type: 'string' }
+              }
+            },
+            admin: {
+              type: 'object',
+              properties: {
+                firstName: { type: 'string' },
+                lastName: { type: 'string' },
+                email: { type: 'string' }
+              }
+            }
+          }
+        }
+      }
+    }
   })
   async getExamSubmission(@Param('id', ParseIntPipe) id: number) {
     return this.examsService.getExamSubmission(id);

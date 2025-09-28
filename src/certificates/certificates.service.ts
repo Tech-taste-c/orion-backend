@@ -53,7 +53,20 @@ export class CertificatesService {
         'Certificate already granted to this student',
       );
 
-    return this.prisma.studentCertificate.create({ data });
+    // Create the certificate record
+    // Note: The score field is optional in the schema, so we'll include it if provided
+    const createData: any = {
+      studentId: data.studentId,
+      certId: data.certId,
+      issuedBy: data.issuedBy,
+    };
+
+    // Add score if it's provided and not null/undefined
+    if (data.score !== undefined && data.score !== null) {
+      createData.score = data.score;
+    }
+
+    return this.prisma.studentCertificate.create({ data: createData });
   }
 
   // Get all certificates for a student

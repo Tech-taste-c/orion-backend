@@ -237,4 +237,17 @@ export class ExamsService {
     if (!submission) throw new NotFoundException('Exam Submission not found');
     return submission;
   }
+
+  async getNewestExamForCourse(courseId: number) {
+    const exam = await this.prisma.exam.findFirst({
+      where: { courseId },
+      orderBy: { dateCreated: 'desc' }, // newest first
+    });
+
+    if (!exam) {
+      throw new NotFoundException(`No exam found for course ${courseId}`);
+    }
+
+    return exam;
+  }
 }

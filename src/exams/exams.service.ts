@@ -73,7 +73,7 @@ export class ExamsService {
       select: { courseId: true },
     });
 
-    const courseIds = studentCourses.map(sc => sc.courseId);
+    const courseIds = studentCourses.map((sc) => sc.courseId);
 
     // Get all exams from those courses
     return this.prisma.exam.findMany({
@@ -99,7 +99,10 @@ export class ExamsService {
    * @param examId - The exam's ID
    * @returns Promise<boolean> - True if student has access, false otherwise
    */
-  private async checkStudentExamAccess(studentId: number, examId: number): Promise<boolean> {
+  private async checkStudentExamAccess(
+    studentId: number,
+    examId: number,
+  ): Promise<boolean> {
     const exam = await this.prisma.exam.findUnique({
       where: { id: examId },
       select: { courseId: true },
@@ -149,12 +152,12 @@ export class ExamsService {
     });
     if (existing) throw new ConflictException('Exam already taken');
 
-    return this.prisma.studentExam.create({ 
-      data: { 
-        studentId, 
+    return this.prisma.studentExam.create({
+      data: {
+        studentId,
         examId,
-        takenAt: new Date()
-      } 
+        takenAt: new Date(),
+      },
     });
   }
 
@@ -356,15 +359,17 @@ export class ExamsService {
     });
 
     if (!submission) throw new NotFoundException('Exam Submission not found');
-    
+
     // Transform the response to return only one certificate (prioritize student certificate)
-    const studentCertificate = submission.student.studentCertificates.length > 0 
-      ? submission.student.studentCertificates[0] 
-      : null;
-    
-    const courseCertificate = submission.exam.course.certificates.length > 0 
-      ? submission.exam.course.certificates[0] 
-      : null;
+    const studentCertificate =
+      submission.student.studentCertificates.length > 0
+        ? submission.student.studentCertificates[0]
+        : null;
+
+    const courseCertificate =
+      submission.exam.course.certificates.length > 0
+        ? submission.exam.course.certificates[0]
+        : null;
 
     // Use student certificate if available, otherwise use course certificate
     const certificate = studentCertificate || courseCertificate;
@@ -433,15 +438,17 @@ export class ExamsService {
     });
 
     if (!submission) throw new NotFoundException('Exam Submission not found');
-    
+
     // Transform to return only one certificate (prioritize student certificate)
-    const studentCertificate = submission.student.studentCertificates.length > 0 
-      ? submission.student.studentCertificates[0] 
-      : null;
-    
-    const courseCertificate = submission.exam.course.certificates.length > 0 
-      ? submission.exam.course.certificates[0] 
-      : null;
+    const studentCertificate =
+      submission.student.studentCertificates.length > 0
+        ? submission.student.studentCertificates[0]
+        : null;
+
+    const courseCertificate =
+      submission.exam.course.certificates.length > 0
+        ? submission.exam.course.certificates[0]
+        : null;
 
     // Use student certificate if available, otherwise use course certificate
     const certificate = studentCertificate || courseCertificate;
@@ -463,19 +470,6 @@ export class ExamsService {
     };
 
     return transformedSubmission;
-  }
-
-  async getNewestExamForCourse(courseId: number) {
-    const exam = await this.prisma.exam.findFirst({
-      where: { courseId },
-      orderBy: { dateCreated: 'desc' }, // newest first
-    });
-
-    if (!exam) {
-      throw new NotFoundException(`No exam found for course ${courseId}`);
-    }
-
-    return exam;
   }
 
   async getNewestExamForCourse(courseId: number) {

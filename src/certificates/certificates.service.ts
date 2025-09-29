@@ -71,9 +71,17 @@ export class CertificatesService {
 
   // Get all certificates for a student
   async getStudentCertificates(studentId: number) {
-    return this.prisma.studentCertificate.findMany({
+    const certs = await this.prisma.studentCertificate.findMany({
       where: { studentId },
-      include: { certificate: true },
+      include: {
+        certificate: true,
+      },
     });
+
+    // Append a static URL for each record
+    return certs.map((c) => ({
+      ...c,
+      url: 'https://drive.google.com/file/d/1FCEwvAV37vmp5XrwRT7MnTcidBJ29KWG/view', // fixed placeholder until certificate generation is completed
+    }));
   }
 }

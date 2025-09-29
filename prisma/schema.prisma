@@ -143,6 +143,7 @@ model StudentCertificate {
   issuedAt  DateTime  @default(now())
   issuedBy  Int       // Admin ID
   score     Float?
+  url       String?   // Certificate URL
 
   student   Student    @relation(fields: [studentId], references: [id])
   certificate Certificate @relation(fields: [certId], references: [id])

@@ -2,11 +2,17 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { join } from 'path';
+import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe());
+  app.use(
+    '/certificates',
+    express.static(join(process.cwd(), 'public', 'certificates')),
+  );
   const config = new DocumentBuilder()
     .setTitle('Orion Backend API')
     .setDescription('API documentation for Orion Learning Management System')

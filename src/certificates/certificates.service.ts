@@ -6,6 +6,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCertificateDto } from './dto/create-certificate.dto';
 import { GrantCertificateDto } from './dto/grant-certificate.dto';
+import * as fs from 'fs'; // for existsSync / mkdirSync
+import { promises as fsp } from 'fs'; // for async readFile/writeFile
+import * as path from 'path';
+import * as handlebars from 'handlebars';
+import * as puppeteer from 'puppeteer';
 
 @Injectable()
 export class CertificatesService {
@@ -24,47 +29,73 @@ export class CertificatesService {
 
   // Admin grants a certificate to a student
   async grantCertificate(data: GrantCertificateDto) {
-    // check student exists
+    // Inside the function
+    const certificatesDir =
+      process.env.CERTIFICATES_DIR || 'public/certificates';
+    const certificatesBaseUrl =
+      process.env.CERTIFICATES_BASE_URL ||
+      'https://your-domain.com/certificates';
+    // Fetch data
     const student = await this.prisma.student.findUnique({
       where: { id: data.studentId },
     });
-    if (!student) throw new NotFoundException('Student not found');
-
-    // check certificate exists
     const certificate = await this.prisma.certificate.findUnique({
       where: { id: data.certId },
+      include: { course: true },
     });
-    if (!certificate) throw new NotFoundException('Certificate not found');
+    if (!student || !certificate) {
+      throw new NotFoundException('Student or certificate not found');
+    }
 
-    // check admin exists
-    const admin = await this.prisma.admin.findUnique({
-      where: { id: data.issuedBy },
+    // Prepare template variables
+    const templatePath = path.join(
+      process.cwd(),
+      process.env.NODE_ENV === 'production'
+        ? 'dist/templates'
+        : 'src/templates',
+      'certificate.hbs',
+    );
+    const htmlTemplate = await fsp.readFile(templatePath, { encoding: 'utf8' });
+    const compile = handlebars.compile(htmlTemplate);
+
+    const todayDate = new Date().toLocaleDateString();
+    const html = compile({
+      studentId: student.id,
+      studentName: student.firstName,
+      courseName: certificate.course.title,
+      certificateName: certificate.certName,
+      todayDate,
     });
-    if (!admin) throw new NotFoundException('Admin not found');
 
-    // prevent duplicate
-    const existing = await this.prisma.studentCertificate.findUnique({
-      where: {
-        studentId_certId: { studentId: data.studentId, certId: data.certId },
-      },
-    });
-    if (existing)
-      throw new ConflictException(
-        'Certificate already granted to this student',
-      );
+    // Generate PDF file with puppeteer
+    const outputDir = path.join(process.cwd(), certificatesDir);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
 
-    // Create the certificate record
-    // Note: The score field is optional in the schema, so we'll include it if provided
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const fileName = `certificate_${student.id}_${Date.now()}.pdf`;
+    const filePath = path.join(outputDir, fileName);
+
+    const browser = await puppeteer.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.pdf({ path: filePath, format: 'A4' });
+    await browser.close();
+
+    // Construct public URL (assuming /public is served as static)
+    const publicUrl = `${certificatesBaseUrl}/${fileName}`;
+
     const createData: any = {
       studentId: data.studentId,
       certId: data.certId,
       issuedBy: data.issuedBy,
+      url: publicUrl,
+      score: data.score,
     };
-
-    // Add score if it's provided and not null/undefined
-    if (data.score !== undefined && data.score !== null) {
-      createData.score = data.score;
-    }
 
     return this.prisma.studentCertificate.create({ data: createData });
   }

@@ -96,3 +96,15 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Environment Variables
+
+Add to your `.env` file:
+
+```
+DATABASE_URL=database-url
+AWS_REGION=aws-region-of-cert-upload-user
+AWS_ACCESS_KEY_ID=aws-access-key-of-cert-upload-user
+AWS_SECRET_ACCESS_KEY=aws-secret-access-key-of-cert-upload-user
+S3_BUCKET_NAME=s3-bucket-name-for-certs
+```

@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsUrl,
+} from 'class-validator';
 
 export class CreateCourseDto {
   @ApiProperty({ example: 'JS001' })
@@ -29,4 +35,12 @@ export class CreateCourseDto {
   @ApiProperty({ example: 3.5, description: 'Duration in hours (e.g. 3.5)' })
   @IsNumber()
   duration: number;
+
+  @ApiProperty({
+    required: false,
+    example: 'https://example.com/course/intro-to-electronics',
+  })
+  @IsOptional()
+  @IsUrl()
+  courseDetailPageLink?: string;
 }

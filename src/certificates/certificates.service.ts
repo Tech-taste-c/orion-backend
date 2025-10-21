@@ -10,6 +10,7 @@ import { promises as fsp } from 'fs'; // for async readFile/writeFile
 import * as path from 'path';
 import * as handlebars from 'handlebars';
 import * as puppeteer from 'puppeteer';
+import QRCode from 'qrcode';
 import { s3Client } from './s3.client';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -51,21 +52,47 @@ export class CertificatesService {
       'certificate.hbs',
     );
     const htmlTemplate = await fsp.readFile(templatePath, { encoding: 'utf8' });
-    const compile = handlebars.compile(htmlTemplate);
+    const template = handlebars.compile(htmlTemplate);
 
     const todayDate = new Date().toLocaleDateString();
-    const html = compile({
-      studentId: student.id,
-      studentName: student.firstName,
-      courseName: certificate.course.title,
-      certificateName: certificate.certName,
-      todayDate,
+    // Generate QR Code (Base64)
+    let qrDataURL: string | null = null;
+
+    if (certificate.course.courseDetailPageLink) {
+      qrDataURL = await QRCode.toDataURL(
+        certificate.course.courseDetailPageLink,
+      );
+    } else {
+      // Optional: generate QR for a default page or skip
+      qrDataURL = await QRCode.toDataURL('https://orion-technical.com/courses/');
+      // Or just keep it null:
+      // qrDataURL = null;
+    }
+
+    const tempData = {
+      StudentName: student.firstName + ' ' + student.lastName,
+      CourseHours: certificate.course.duration,
+      CourseName: certificate.course.title,
+      QRCodeBase64: qrDataURL,
+      TodayDate: todayDate,
+      StudentId: student.id,
+    };
+    const html = template(tempData);
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
 
-    const browser = await puppeteer.launch({ headless: true });
+    // const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-    await page.setContent(html);
-    const pdfBuffer = await page.pdf({ format: 'A4' });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
+      printBackground: true,
+      width: '1000px',
+      height: '750px',
+      margin: { top: 0, bottom: 0, left: 0, right: 0 },
+    });
     await browser.close();
 
     // Prepare S3 upload

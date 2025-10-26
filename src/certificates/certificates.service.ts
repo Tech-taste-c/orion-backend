@@ -51,51 +51,79 @@ export class CertificatesService {
         : 'src/templates',
       'certificate.hbs',
     );
+
     const htmlTemplate = await fsp.readFile(templatePath, { encoding: 'utf8' });
     const template = handlebars.compile(htmlTemplate);
 
     const todayDate = new Date().toLocaleDateString();
-    // Generate QR Code (Base64)
-    let qrDataURL: string | null = null;
 
+    // Generate QR Code (Base64)
+    let qrDataURL: string;
     if (certificate.course.courseDetailPageLink) {
       qrDataURL = await QRCode.toDataURL(
         certificate.course.courseDetailPageLink,
       );
     } else {
-      // Optional: generate QR for a default page or skip
-      qrDataURL = await QRCode.toDataURL('https://orion-technical.com/courses/');
-      // Or just keep it null:
-      // qrDataURL = null;
+      qrDataURL = await QRCode.toDataURL(
+        'https://orion-technical.com/courses/',
+      );
     }
 
+    // Template data
     const tempData = {
-      StudentName: student.firstName + ' ' + student.lastName,
+      StudentName: `${student.firstName} ${student.lastName}`,
       CourseHours: certificate.course.duration,
       CourseName: certificate.course.title,
       QRCodeBase64: qrDataURL,
       TodayDate: todayDate,
       StudentId: student.id,
     };
-    const html = template(tempData);
 
+    const compiledHtml = template(tempData);
+
+    // --- Puppeteer setup ---
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
-
-    // const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    // Base path for image resolution
+    const basePath = path.join(
+      process.cwd(),
+      process.env.NODE_ENV === 'production'
+        ? 'dist/templates/img'
+        : 'src/templates/img',
+    );
+
+    // ✅ Build proper HTML structure
+    const htmlWithBase = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <base href="file://${basePath.replace(/\\/g, '/')}/">
+        <meta charset="UTF-8">
+      </head>
+      <body>
+        ${compiledHtml}
+      </body>
+    </html>
+    `;
+
+    // ✅ Set HTML and wait for images
+    await page.setContent(htmlWithBase, { waitUntil: 'networkidle0' });
+
+    // Generate PDF
     const pdfBuffer = await page.pdf({
       printBackground: true,
-      width: '1000px',
-      height: '750px',
+      width: '11.69in', // A4 landscape width
+      height: '8.27in', // A4 landscape height
       margin: { top: 0, bottom: 0, left: 0, right: 0 },
     });
+
     await browser.close();
 
-    // Prepare S3 upload
+    // Upload to S3
     const fileName = `certificate_${student.id}_${Date.now()}.pdf`;
     const s3Key = `certificates/${fileName}`;
 

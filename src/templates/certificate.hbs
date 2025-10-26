@@ -1,138 +1,146 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Certificate of Recognition</title>
-  <style>
-    body {
-      font-family: "Arial", sans-serif;
-      background-image: url("{{BackgroundBase64}}");
-      background-size: cover;
-      background-position: center;
-      width: 1000px;
-      height: 750px;
-      margin: 0;
-      position: relative;
-      color: #000;
-    }
+<meta charset="UTF-8" />
+<style>
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
 
-    .content {
-      position: absolute;
-      top: 250px;
-      width: 100%;
-      text-align: center;
-    }
+  body {
+    font-family: "Arial", sans-serif;
+    text-align: center;
+    /*background: url('background.png') no-repeat center center;*/
+    background-size: cover;
+    width: 90%;
+    height: 100%;
+    padding: 40px 60px;
+    box-sizing: border-box;
+    position: relative;
+  }
 
-    h1 {
-      font-size: 42px;
-      margin: 0;
-      font-weight: 700;
-      color: #1e3a8a;
-    }
+  .logo {
+    margin-top: 10px;
+  }
 
-    h2 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #000;
-      margin-top: 5px;
-    }
+  .certificate-title {
+    color: #2b4ea2;
+    font-size: 48px;
+    font-weight: bold;
+    margin: 10px 0 0;
+  }
 
-    p {
-      font-size: 18px;
-      margin: 10px 0;
-    }
+  .subtitle {
+    font-size: 26px;
+    font-weight: bold;
+    margin: 5px 0 20px;
+  }
 
-    .student-name {
-      font-size: 28px;
-      font-weight: bold;
-      margin-top: 25px;
-      text-transform: capitalize;
-    }
+  .award-text {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
 
-    .course-name {
-      font-size: 22px;
-      font-weight: 600;
-      margin-top: 10px;
-    }
+  .recipient {
+    font-size: 30px;
+    font-weight: bold;
+    margin: 10px 0;
+  }
 
-    .footer {
-      position: absolute;
-      bottom: 80px;
-      width: 100%;
-      display: flex;
-      justify-content: space-around;
-      align-items: flex-start;
-    }
+  .course-name {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 25px 0 10px;
+  }
 
-    .qr {
-      width: 120px;
-      height: 120px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: #fff;
-    }
+  .award-icon {
+    position: absolute;
+    top: 60px;
+    right: 100px;
+    width: 200px;
+    height: 200px;
+  }
 
-    .qr img {
-      width: 100%;
-      height: 100%;
-    }
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    bottom: 70px;
+    left: 80px;
+    right: 80px;
+  }
 
-    .footer-section {
-      text-align: center;
-    }
+  .section {
+    width: 28%;
+    text-align: center;
+  }
 
-    .line {
-      width: 180px;
-      border-top: 1px solid #000;
-      margin: 0 auto 5px;
-    }
+  .footer-line {
+    border-top: 1px solid black;
+    width: 80%;
+    margin: 0 auto 6px auto;
+  }
 
-    .footer-section p {
-      margin: 3px 0;
-      font-size: 14px;
-    }
+  .signature {
+    width: 140px;
+    margin: 0 auto 0 auto;
+  }
 
-    .footer-section .date {
-      font-weight: bold;
-      font-size: 16px;
-    }
+  .signature img {
+    width: 100%;
+    height: auto;
+  }
 
-    .signature-line {
-      width: 180px;
-      border-top: 1px solid #000;
-      margin: 0 auto 5px;
-    }
-  </style>
+  .qr {
+    width: 120px;
+    height: 120px;
+    border: 1px solid #ccc;
+    padding: 5px;
+    background: white;
+    margin: 0 auto 5px auto;
+  }
+
+  .qr img {
+    width: 100%;
+    height: auto;
+  }
+
+</style>
 </head>
 <body>
-  <div class="content">
-    <h1>CERTIFICATE</h1>
-    <h2>OF RECOGNITION</h2>
-    <p>the following award is given to</p>
-    <p class="student-name">{{StudentName}}</p>
-    <p>Has completed {{CourseHours}} hours of hands-on training in</p>
-    <p class="course-name">{{CourseName}}</p>
-  </div>
+  <img class="logo" src="company-logo.png" alt="Company Logo" width="220" />
+
+  <h1 class="certificate-title">CERTIFICATE</h1>
+  <h2 class="subtitle">OF RECOGNITION</h2>
+
+  <p class="award-text">the following award is given to</p>
+  <p class="recipient">{{StudentName}}</p>
+  <p>Has completed {{CourseHours}} hours of hands-on training in</p>
+  <p class="course-name">{{CourseName}}</p>
+
+  <img class="award-icon" src="award-icon.png" alt="Award Icon" />
 
   <div class="footer">
-    <!-- Left: QR Code -->
-    <div class="qr">
-      <img src="{{QRCodeBase64}}" alt="QR Code">
+    <div class="section">
+      <div class="qr">
+        <img src="{{QRCodeBase64}}" alt="QR Code">
+      </div>
+      <p><strong>Course Information</strong></p>
     </div>
 
-    <!-- Center: Date + Student Info -->
-    <div class="footer-section">
-      <p class="date">{{TodayDate}}</p>
-      <div class="line"></div>
+    <div class="section">
+	  <p><strong>{{TodayDate}}</strong></p>
+      <div class="footer-line"></div>
       <p>Date Completed</p>
       <p>Student ID {{StudentId}}</p>
     </div>
 
-    <!-- Right: Instructor Signature -->
-    <div class="footer-section">
-      <div class="signature-line"></div>
+    <div class="section">
+      <div class="signature">
+        <img src="signature.png" alt="Signature" />
+      </div>
+	  <div class="footer-line"></div>
       <p><strong>Mike Glass</strong></p>
       <p>Instructor</p>
     </div>

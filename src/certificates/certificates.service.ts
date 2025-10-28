@@ -8,12 +8,12 @@ import { CreateCertificateDto } from './dto/create-certificate.dto';
 import { GrantCertificateDto } from './dto/grant-certificate.dto';
 import { promises as fsp } from 'fs'; // for async readFile/writeFile
 import * as path from 'path';
-import * as handlebars from 'handlebars';
-import * as puppeteer from 'puppeteer';
 import QRCode from 'qrcode';
 import { s3Client } from './s3.client';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import * as fs from 'fs/promises';
 
 @Injectable()
 export class CertificatesService {
@@ -44,86 +44,113 @@ export class CertificatesService {
     }
 
     // Prepare template variables
+    // 🔹 Load your PDF template
     const templatePath = path.join(
       process.cwd(),
       process.env.NODE_ENV === 'production'
         ? 'dist/templates'
         : 'src/templates',
-      'certificate.hbs',
+      'cert.pdf',
     );
+    const existingPdfBytes = await fs.readFile(templatePath);
 
-    const htmlTemplate = await fsp.readFile(templatePath, { encoding: 'utf8' });
-    const template = handlebars.compile(htmlTemplate);
+    // 🔹 Load and prepare the PDF
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    const page = pdfDoc.getPages()[0];
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBoldFont = await pdfDoc.embedFont(
+      StandardFonts.HelveticaBold,
+    );
+    const timesBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+    const helveticaBoldItFont = await pdfDoc.embedFont(
+      StandardFonts.HelveticaBoldOblique,
+    );
+    const textColor = rgb(0, 0, 0);
+    const fontSize = 12;
 
-    const todayDate = new Date().toLocaleDateString();
-
-    // Generate QR Code (Base64)
-    let qrDataURL: string;
-    if (certificate.course.courseDetailPageLink) {
-      qrDataURL = await QRCode.toDataURL(
-        certificate.course.courseDetailPageLink,
-      );
-    } else {
-      qrDataURL = await QRCode.toDataURL(
+    // 🔹 Prepare data
+    const today = new Date();
+    const todayDate = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}-${today.getFullYear()}`;
+    const qrDataURL = await QRCode.toDataURL(
+      certificate.course.courseDetailPageLink ||
         'https://orion-technical.com/courses/',
-      );
-    }
-
-    // Template data
-    const tempData = {
-      StudentName: `${student.firstName} ${student.lastName}`,
-      CourseHours: certificate.course.duration,
-      CourseName: certificate.course.title,
-      QRCodeBase64: qrDataURL,
-      TodayDate: todayDate,
-      StudentId: student.id,
-    };
-
-    const compiledHtml = template(tempData);
-
-    // --- Puppeteer setup ---
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    const page = await browser.newPage();
-
-    // Base path for image resolution
-    const basePath = path.join(
-      process.cwd(),
-      process.env.NODE_ENV === 'production'
-        ? 'dist/templates/img'
-        : 'src/templates/img',
     );
+    const centerX = 5.5 * 72;
+    const fullName = `${student.firstName} ${student.lastName}`;
+    const textWidthName = helveticaBoldItFont.widthOfTextAtSize(fullName, 24);
 
-    // ✅ Build proper HTML structure
-    const htmlWithBase = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <base href="file://${basePath.replace(/\\/g, '/')}/">
-        <meta charset="UTF-8">
-      </head>
-      <body>
-        ${compiledHtml}
-      </body>
-    </html>
-    `;
-
-    // ✅ Set HTML and wait for images
-    await page.setContent(htmlWithBase, { waitUntil: 'networkidle0' });
-
-    // Generate PDF
-    const pdfBuffer = await page.pdf({
-      printBackground: true,
-      width: '11.69in', // A4 landscape width
-      height: '8.27in', // A4 landscape height
-      margin: { top: 0, bottom: 0, left: 0, right: 0 },
+    page.drawText(fullName.toUpperCase(), {
+      x: centerX - textWidthName / 2,
+      y: 4 * 72,
+      size: 24,
+      font: helveticaBoldItFont,
+      color: textColor,
     });
 
-    await browser.close();
+    page.drawText(String(certificate.course.duration), {
+      x: 4.47 * 72,
+      y: 3.5 * 72,
+      size: 13,
+      font: helveticaBoldFont,
+      color: textColor,
+    });
 
-    // Upload to S3
+    const textWidthTitle = timesBoldFont.widthOfTextAtSize(
+      certificate.course.title.trim(),
+      22,
+    );
+    page.drawText(certificate.course.title, {
+      x: centerX - textWidthTitle / 2,
+      y: 2.7 * 72,
+      size: 22,
+      font: timesBoldFont,
+      color: textColor,
+    });
+
+    page.drawText(todayDate, {
+      x: 4.3 * 72,
+      y: 1 * 72,
+      size: fontSize,
+      font: helveticaFont,
+      color: textColor,
+    });
+
+    page.drawText(student.id.toString(), {
+      x: 5.1 * 72,
+      y: 0.3 * 72,
+      size: fontSize,
+      font: helveticaFont,
+      color: textColor,
+    });
+
+    // 🔹 Embed QR Code (as image)
+    const qrImageBytes = Buffer.from(
+      qrDataURL.replace(/^data:image\/png;base64,/, ''),
+      'base64',
+    );
+    const qrImage = await pdfDoc.embedPng(qrImageBytes);
+    const qrDims = qrImage.scale(0.5); // adjust scaling later
+
+    page.drawImage(qrImage, {
+      x: 1.2 * 72,
+      y: 0.75 * 72,
+      width: qrDims.width,
+      height: qrDims.height,
+    });
+
+    // 🔹 Save modified PDF
+    const pdfBytes = await pdfDoc.save();
+    const pdfBuffer = Buffer.from(pdfBytes);
+
+    // 🔹 Upload to S3
+    // const s3Client = new S3Client({
+    //   region: process.env.AWS_REGION,
+    //   credentials: {
+    //     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    //     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    //   },
+    // });
+
     const fileName = `certificate_${student.id}_${Date.now()}.pdf`;
     const s3Key = `certificates/${fileName}`;
 
@@ -136,6 +163,7 @@ export class CertificatesService {
       }),
     );
 
+    // 🔹 Save record in DB
     const createData: any = {
       studentId: data.studentId,
       certId: data.certId,

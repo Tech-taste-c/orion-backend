@@ -57,7 +57,7 @@ export class CertificatesService {
     // 🔹 Load and prepare the PDF
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const page = pdfDoc.getPages()[0];
-    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    // const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBoldFont = await pdfDoc.embedFont(
       StandardFonts.HelveticaBold,
     );
@@ -66,7 +66,6 @@ export class CertificatesService {
       StandardFonts.HelveticaBoldOblique,
     );
     const textColor = rgb(0, 0, 0);
-    const fontSize = 12;
 
     // 🔹 Prepare data
     const today = new Date();
@@ -110,20 +109,20 @@ export class CertificatesService {
     page.drawText(todayDate, {
       x: 4.3 * 72,
       y: 1 * 72,
-      size: fontSize,
-      font: helveticaFont,
+      size: 14,
+      font: helveticaBoldFont,
       color: textColor,
     });
 
     page.drawText(student.id.toString(), {
       x: 5.1 * 72,
       y: 0.3 * 72,
-      size: fontSize,
-      font: helveticaFont,
+      size: 12,
+      font: helveticaBoldFont,
       color: textColor,
     });
 
-    // 🔹 Embed QR Code (as image)
+    // Embed QR Code (as image)
     const qrImageBytes = Buffer.from(
       qrDataURL.replace(/^data:image\/png;base64,/, ''),
       'base64',
@@ -138,19 +137,11 @@ export class CertificatesService {
       height: qrDims.height,
     });
 
-    // 🔹 Save modified PDF
+    // Save modified PDF
     const pdfBytes = await pdfDoc.save();
     const pdfBuffer = Buffer.from(pdfBytes);
 
-    // 🔹 Upload to S3
-    // const s3Client = new S3Client({
-    //   region: process.env.AWS_REGION,
-    //   credentials: {
-    //     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    //     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    //   },
-    // });
-
+    // Upload to S3
     const fileName = `certificate_${student.id}_${Date.now()}.pdf`;
     const s3Key = `certificates/${fileName}`;
 
@@ -163,7 +154,7 @@ export class CertificatesService {
       }),
     );
 
-    // 🔹 Save record in DB
+    // Save record in DB
     const createData: any = {
       studentId: data.studentId,
       certId: data.certId,

@@ -203,6 +203,7 @@ export class CertificatesService {
         return {
           id: record.id,
           issuedAt: record.issuedAt.toISOString().split('T')[0],
+          score: record.score,
           certificate: {
             certId: record.certificate.certId,
             certName: record.certificate.certName,

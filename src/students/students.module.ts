@@ -3,6 +3,7 @@ import { StudentsService } from './students.service';
 import { StudentsController } from './students.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { JwtModule } from '@nestjs/jwt';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { JwtModule } from '@nestjs/jwt';
       secret: process.env.JWT_SECRET || 'your-secret-key',
       signOptions: { expiresIn: '24h' },
     }),
+    MailModule,
   ],
   controllers: [StudentsController],
   providers: [StudentsService],

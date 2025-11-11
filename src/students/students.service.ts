@@ -10,12 +10,14 @@ import { LoginStudentDto } from './dto/login-student.dto';
 import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class StudentsService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async create(data: CreateStudentDto) {
@@ -25,6 +27,8 @@ export class StudentsService {
     if (existing) throw new ConflictException('Email already registered');
 
     const hashed = await bcrypt.hash(data.password, 10);
+
+    await this.mailService.sendWelcomeEmail(data.email, data.firstName);
 
     return this.prisma.student.create({
       data: {
@@ -56,14 +60,14 @@ export class StudentsService {
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
     // Generate JWT token
-    const payload = { 
-      email: student.email, 
-      sub: student.id, 
+    const payload = {
+      email: student.email,
+      sub: student.id,
       type: 'student',
       firstName: student.firstName,
-      lastName: student.lastName
+      lastName: student.lastName,
     };
-    
+
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -72,8 +76,8 @@ export class StudentsService {
         lastName: student.lastName,
         email: student.email,
         phone: student.phone,
-        type: 'student'
-      }
+        type: 'student',
+      },
     };
   }
 
@@ -142,7 +146,10 @@ export class StudentsService {
     });
   }
 
-  async validatePassword(password: string, hashedPassword: string): Promise<boolean> {
+  async validatePassword(
+    password: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return bcrypt.compare(password, hashedPassword);
   }
 }

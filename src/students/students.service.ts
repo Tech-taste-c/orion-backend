@@ -28,25 +28,33 @@ export class StudentsService {
 
     const hashed = await bcrypt.hash(data.password, 10);
 
-    await this.mailService.sendWelcomeEmail(data.email, data.firstName);
+    try {
+      const student = await this.prisma.student.create({
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          password: hashed,
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          createdAt: true,
+        },
+      });
 
-    return this.prisma.student.create({
-      data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        password: hashed,
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        createdAt: true,
-      },
-    });
+      // Send welcome email only after successful creation
+      await this.mailService.sendWelcomeEmail(student.email, student.firstName);
+
+      return student;
+    } catch (error) {
+      console.error('Failed to create student or send welcome email', error);
+      throw error; // Rethrow if you want the API to return an error
+    }
   }
 
   async login(data: LoginStudentDto) {

@@ -14,10 +14,15 @@ import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import * as fs from 'fs/promises';
+import fontkit from '@pdf-lib/fontkit';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class CertificatesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {}
 
   // Admin creates a certificate
   async createCertificate(data: CreateCertificateDto) {
@@ -45,26 +50,55 @@ export class CertificatesService {
 
     // Prepare template variables
     // 🔹 Load your PDF template
-    const templatePath = path.join(
-      process.cwd(),
-      process.env.NODE_ENV === 'production'
-        ? 'dist/templates'
-        : 'src/templates',
-      'cert.pdf',
-    );
+    // const templatePath = path.join(
+    //   process.cwd(),
+    //   process.env.NODE_ENV === 'production'
+    //     ? 'dist/templates'
+    //     : 'src/templates',
+    //   'cert.pdf',
+    // );
+    const templatePath = path.join(process.cwd(), 'dist/templates/cert.pdf');
     const existingPdfBytes = await fs.readFile(templatePath);
 
     // 🔹 Load and prepare the PDF
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const page = pdfDoc.getPages()[0];
     // const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const helveticaBoldFont = await pdfDoc.embedFont(
-      StandardFonts.HelveticaBold,
+    // const helveticaBoldFont = await pdfDoc.embedFont(
+    //   StandardFonts.HelveticaBold,
+    // );
+    // const timesBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+    // const helveticaBoldItFont = await pdfDoc.embedFont(
+    //   StandardFonts.HelveticaBoldOblique,
+    // );
+    pdfDoc.registerFontkit(fontkit);
+    // const fontPath = path.join(
+    //   process.cwd(),
+    //   process.env.NODE_ENV === 'production'
+    //     ? 'dist/assets/fonts'
+    //     : 'src/assets/fonts',
+    //   'Montserrat-SemiBold.ttf',
+    // );
+    const fontPath = path.join(
+      process.cwd(),
+      'dist/assets/fonts/Montserrat-SemiBold.ttf',
     );
-    const timesBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
-    const helveticaBoldItFont = await pdfDoc.embedFont(
-      StandardFonts.HelveticaBoldOblique,
+    const fontBytes = await fsp.readFile(fontPath);
+    const montserratFont = await pdfDoc.embedFont(fontBytes);
+    const fontPathBold = path.join(
+      process.cwd(),
+      'dist/assets/fonts/Montserrat-ExtraBold.ttf',
     );
+    const fontBytesBold = await fsp.readFile(fontPathBold);
+    const montserratFontBold = await pdfDoc.embedFont(fontBytesBold);
+    const fontPathBoldItalic = path.join(
+      process.cwd(),
+      'dist/assets/fonts/Montserrat-SemiBoldItalic.ttf',
+    );
+    const fontBytesBoldItalic = await fsp.readFile(fontPathBoldItalic);
+    const montserratFontBoldItalic =
+      await pdfDoc.embedFont(fontBytesBoldItalic);
+
     const textColor = rgb(0, 0, 0);
 
     // 🔹 Prepare data
@@ -76,13 +110,12 @@ export class CertificatesService {
     );
     const centerX = 5.5 * 72;
     const fullName = `${student.firstName} ${student.lastName}`;
-    const textWidthName = helveticaBoldItFont.widthOfTextAtSize(fullName, 24);
-
+    const textWidthName = montserratFontBold.widthOfTextAtSize(fullName, 24);
     page.drawText(fullName.toUpperCase(), {
       x: centerX - textWidthName / 2,
       y: 4 * 72,
       size: 24,
-      font: helveticaBoldItFont,
+      font: montserratFontBold,
       color: textColor,
     });
 
@@ -90,11 +123,11 @@ export class CertificatesService {
       x: 4.47 * 72,
       y: 3.5 * 72,
       size: 13,
-      font: helveticaBoldFont,
+      font: montserratFont,
       color: textColor,
     });
 
-    const textWidthTitle = timesBoldFont.widthOfTextAtSize(
+    const textWidthTitle = montserratFontBoldItalic.widthOfTextAtSize(
       certificate.course.title.trim(),
       22,
     );
@@ -102,7 +135,7 @@ export class CertificatesService {
       x: centerX - textWidthTitle / 2,
       y: 2.7 * 72,
       size: 22,
-      font: timesBoldFont,
+      font: montserratFontBoldItalic,
       color: textColor,
     });
 
@@ -110,7 +143,7 @@ export class CertificatesService {
       x: 4.3 * 72,
       y: 1 * 72,
       size: 14,
-      font: helveticaBoldFont,
+      font: montserratFont,
       color: textColor,
     });
 
@@ -118,7 +151,7 @@ export class CertificatesService {
       x: 5.1 * 72,
       y: 0.3 * 72,
       size: 12,
-      font: helveticaBoldFont,
+      font: montserratFont,
       color: textColor,
     });
 
@@ -163,9 +196,23 @@ export class CertificatesService {
       score: data.score,
     };
 
-    return this.prisma.studentCertificate.create({
-      data: createData,
-    });
+    try {
+      const studentCertificate = await this.prisma.studentCertificate.create({
+        data: createData,
+      });
+
+      await this.mailService.sendCertificateReadyEmail(
+        student.email,
+        student.firstName,
+        certificate.course.title,
+      );
+
+      return studentCertificate;
+    } catch (error) {
+      // Log the error or handle it
+      console.error('Failed to create certificate or send email', error);
+      throw error; // rethrow if you want the API to return an error
+    }
   }
 
   // Get all certificates for a student

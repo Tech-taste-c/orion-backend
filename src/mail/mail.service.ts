@@ -87,7 +87,7 @@ export class MailService {
             <p>You've been assigned a new ${courseName} on the Orion Technical Learning Portal.</p>
 
             <p style="margin-top: 20px;">
-              🔗 <strong><a href="${portalLink}" style="color: #007BFF; text-decoration: none;">Access Your Portal</a></strong>
+              🔗 <strong><a href="${portalLink}" style="color: #007BFF; text-decoration: none;">Access It Here</a></strong>
             </p>
 
             <p>
@@ -118,14 +118,14 @@ export class MailService {
 
       await this.mailerService.sendMail({
         to,
-        subject: `Welcome to ${companyName}!`,
+        subject: `Certificate Available | Access via Orion Technical LMS Portal`,
         text: `Congratulations ${firstName},
 
   You have successfully passed the ${courseName} exam and are now available at the Orion Technical Learning Portal.
 
   You now have access to our client portal where you can easily access your certifications, track progress on exams, and stay connected with our team using the credentials you’ve signed up with.
 
-  Access Your Portal: ${portalLink}
+  Access It Here: ${portalLink}
 
   We applaud your continued progress and thank you for learning with Orion Technical! Feel free to download your copy or share your certificate via our social links.
 
@@ -144,7 +144,7 @@ export class MailService {
             </p>
 
             <p style="margin-top: 20px;">
-              🔗 <strong><a href="${portalLink}" style="color: #007BFF; text-decoration: none;">Access Your Portal</a></strong><br>
+              🔗 <strong><a href="${portalLink}" style="color: #007BFF; text-decoration: none;">Access It Here</a></strong><br>
             </p>
 
             <p>

@@ -16,6 +16,8 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import * as fs from 'fs/promises';
 import fontkit from '@pdf-lib/fontkit';
 import { MailService } from '../mail/mail.service';
+import { randomBytes } from 'crypto';
+import { Readable } from 'stream';
 
 @Injectable()
 export class CertificatesService {
@@ -201,6 +203,14 @@ export class CertificatesService {
         data: createData,
       });
 
+      // Create the permanent share link immediately
+      await this.prisma.certificateShare.create({
+        data: {
+          studentCertificateId: studentCertificate.id,
+          shareId: randomBytes(32).toString('hex'),
+        },
+      });
+
       await this.mailService.sendCertificateReadyEmail(
         student.email,
         student.firstName,
@@ -216,23 +226,84 @@ export class CertificatesService {
   }
 
   // Get all certificates for a student
+  // async getStudentCertificates(studentId: number) {
+  //   const records = await this.prisma.studentCertificate.findMany({
+  //     where: { studentId },
+  //     include: {
+  //       certificate: {
+  //         include: {
+  //           course: true,
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   if (!records.length) {
+  //     throw new NotFoundException('No certificates found for this student');
+  //   }
+
+  //   // Generate pre-signed URLs
+  //   return Promise.all(
+  //     records.map(async (record) => {
+  //       let presignedUrl: string | null = null;
+
+  //       if (record.url) {
+  //         const command = new GetObjectCommand({
+  //           Bucket: process.env.S3_BUCKET_NAME!,
+  //           Key: record.url,
+  //         });
+  //         presignedUrl = await getSignedUrl(s3Client, command, {
+  //           expiresIn: 300,
+  //         }); // 5 min
+  //       }
+
+  //       return {
+  //         id: record.id,
+  //         issuedAt: record.issuedAt.toISOString().split('T')[0],
+  //         score: record.score,
+  //         certificate: {
+  //           certId: record.certificate.certId,
+  //           certName: record.certificate.certName,
+  //           courseTitle: record.certificate.course.title,
+  //         },
+  //         issuedBy: record.issuedBy,
+  //         url: presignedUrl,
+  //       };
+  //     }),
+  //   );
+  // }
+
+  async getSharedCertificate(shareId: string) {
+    return this.prisma.certificateShare.findUnique({
+      where: { shareId },
+      include: {
+        studentCertificate: true,
+      },
+    });
+  }
+
+  async getCertificateStream(key: string): Promise<Readable> {
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME!,
+      Key: key,
+    });
+
+    const result = await s3Client.send(command);
+    return result.Body as Readable;
+  }
+
   async getStudentCertificates(studentId: number) {
     const records = await this.prisma.studentCertificate.findMany({
       where: { studentId },
       include: {
-        certificate: {
-          include: {
-            course: true,
-          },
-        },
+        certificate: { include: { course: true } },
+        share: true,
       },
     });
 
-    if (!records.length) {
+    if (!records.length)
       throw new NotFoundException('No certificates found for this student');
-    }
 
-    // Generate pre-signed URLs
     return Promise.all(
       records.map(async (record) => {
         let presignedUrl: string | null = null;
@@ -242,9 +313,10 @@ export class CertificatesService {
             Bucket: process.env.S3_BUCKET_NAME!,
             Key: record.url,
           });
-          presignedUrl = await getSignedUrl(s3Client, command, {
-            expiresIn: 300,
-          }); // 5 min
+
+          presignedUrl = (await getSignedUrl(s3Client, command, {
+            expiresIn: 300, // 5 mins
+          })) as string;
         }
 
         return {
@@ -258,6 +330,7 @@ export class CertificatesService {
           },
           issuedBy: record.issuedBy,
           url: presignedUrl,
+          shareId: record.share?.shareId || null,
         };
       }),
     );

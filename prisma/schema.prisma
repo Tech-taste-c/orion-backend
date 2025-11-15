@@ -149,7 +149,7 @@ model StudentCertificate {
   student   Student    @relation(fields: [studentId], references: [id])
   certificate Certificate @relation(fields: [certId], references: [id])
   admin     Admin      @relation(fields: [issuedBy], references: [id])
-
+  share     CertificateShare?
   @@unique([studentId, certId])
 }
 
@@ -163,4 +163,13 @@ model StudentExamAnswer {
   studentExam  StudentExam   @relation(fields: [studentExamId], references: [id])
   question     ExamQuestion  @relation(fields: [questionId], references: [id])
   option       QuestionOption @relation(fields: [optionId], references: [id])
+}
+
+model CertificateShare {
+  id                   Int                @id @default(autoincrement())
+  shareId              String             @unique
+  studentCertificateId Int                @unique
+  createdAt            DateTime           @default(now())
+
+  studentCertificate   StudentCertificate @relation(fields: [studentCertificateId], references: [id])
 }

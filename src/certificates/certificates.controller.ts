@@ -13,6 +13,7 @@ import { CertificatesService } from './certificates.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateCertificateDto } from './dto/create-certificate.dto';
 import { GrantCertificateDto } from './dto/grant-certificate.dto';
+import { escape } from 'he';
 
 @ApiTags('certificates')
 @Controller('certificates')
@@ -40,12 +41,75 @@ export class CertificatesController {
     return this.certificatesService.getStudentCertificates(studentId);
   }
 
-  // @ApiOperation({ summary: 'Get student certificate list' })
-  // @ApiResponse({ status: 200, description: 'List of certificates returned' })
-  // @Get('student/:id')
-  // async getStudentCertificates(@Param('id') id: number) {
-  //   return this.certificateService.getStudentCertificates(Number(id));
-  // }
+  @Get('share/:shareId')
+  @ApiOperation({ summary: 'Get HTML view of the certificate with metadata' })
+  @ApiResponse({ status: 200, description: 'HTML view of the certificate' })
+  async shareCertificate(
+    @Param('shareId') shareId: string,
+    @Res() res: Response,
+  ) {
+    const API_BASE_URL = 'https://lms-api.orion-technical.com';
+
+    const viewerUrl = `https://lms.orion-technical.com/certificates/public/${shareId}`;
+
+    let cert: any = null;
+    try {
+      cert =
+        await this.certificatesService.getPublicCertificateMetadata(shareId);
+    } catch (e) {
+      // if it fails, we'll fall back to defaults
+    }
+
+    const title = cert
+      ? `${cert.certificate.certName} Certificate`
+      : 'Course Certificate';
+
+    const description = cert
+      ? `I just completed the ${cert.certificate.certName} course with a score of ${cert.score}%.`
+      : 'I just completed a course certification.';
+
+    // IMPORTANT: this should be a public PNG/JPG of the certificate (on S3/CloudFront)
+    // e.g. generated at issue time: certificates/previews/:shareId.png
+    const image =
+      'https://cert-public-assets.s3.us-east-2.amazonaws.com/cert.png';
+
+    // The URL that appears in LinkedIn (the one we're on now)
+    const shareUrl = `${API_BASE_URL}/certificates/share/${shareId}`;
+
+    const html = `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <title>${escape(title)}</title>
+
+      <!-- Open Graph -->
+      <meta property="og:title" content="${escape(title)}" />
+      <meta property="og:description" content="${escape(description)}" />
+      <meta property="og:image" content="${escape(image)}" />
+      <meta property="og:url" content="${escape(shareUrl)}" />
+      <meta property="og:type" content="website" />
+
+      <!-- Twitter -->
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="${escape(title)}" />
+      <meta name="twitter:description" content="${escape(description)}" />
+      <meta name="twitter:image" content="${escape(image)}" />
+
+      <!-- Redirect users to your frontend viewer -->
+      <meta http-equiv="refresh" content="0;url=${escape(viewerUrl)}" />
+      <script>
+        window.location.replace(${JSON.stringify(viewerUrl)});
+      </script>
+    </head>
+    <body>
+      <p>Redirecting to certificate...</p>
+      <a href="${escape(viewerUrl)}">Click here if not redirected.</a>
+    </body>
+    </html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  }
 
   @ApiOperation({
     summary: 'Public access to a shared certificate (PDF streaming)',

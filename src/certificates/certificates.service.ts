@@ -335,4 +335,33 @@ export class CertificatesService {
       }),
     );
   }
+
+  async getPublicCertificateMetadata(shareId: string) {
+    return this.prisma.certificateShare
+      .findUnique({
+        where: { shareId },
+        include: {
+          studentCertificate: {
+            include: {
+              certificate: {
+                include: {
+                  course: true,
+                },
+              },
+            },
+          },
+        },
+      })
+      .then((record) => {
+        if (!record) return null;
+
+        return {
+          score: record.studentCertificate.score,
+          certificate: {
+            certName: record.studentCertificate.certificate.certName,
+            courseTitle: record.studentCertificate.certificate.course.title,
+          },
+        };
+      });
+  }
 }

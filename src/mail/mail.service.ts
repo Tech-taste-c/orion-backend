@@ -29,7 +29,7 @@ export class MailService {
   The ${companyName} Team`,
         html: `
           <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-            <h3>Hi ${firstName},</h3>
+            <p>Hi ${firstName},</p>
             <p>Thank you for signing up with <strong>${companyName}</strong>! We’re excited to have you on board.</p>
             
             <p>
@@ -70,7 +70,7 @@ export class MailService {
 
       await this.mailerService.sendMail({
         to,
-        subject: `New Course Assigned – Action Required`,
+        subject: `New Course Assigned | Action Required`,
         text: `Hi ${firstName},
 
   You've been assigned a new ${courseName} on the Orion Technical Learning Portal.
@@ -83,7 +83,7 @@ export class MailService {
   The ${companyName} Team`,
         html: `
           <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-            <h3>Hi ${firstName},</h3>
+            <p>Hi ${firstName},</p>
             <p>You've been assigned a new ${courseName} on the Orion Technical Learning Portal.</p>
 
             <p style="margin-top: 20px;">
@@ -135,7 +135,7 @@ export class MailService {
   The ${companyName} Team`,
         html: `
           <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-            <h3>Congratulations ${firstName},</h3>
+            <p>Congratulations ${firstName},</p>
             <p>You have successfully passed the ${courseName} exam and are now available at the Orion Technical Learning Portal.</p>
             
             <p>

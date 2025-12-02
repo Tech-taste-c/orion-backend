@@ -115,15 +115,15 @@ export class CertificatesService {
     const textWidthName = montserratFontBold.widthOfTextAtSize(fullName, 24);
     page.drawText(fullName.toUpperCase(), {
       x: centerX - textWidthName / 2,
-      y: 4 * 72,
+      y: 4.5 * 72,
       size: 24,
       font: montserratFontBold,
       color: textColor,
     });
 
     page.drawText(String(certificate.course.duration), {
-      x: 4.47 * 72,
-      y: 3.5 * 72,
+      x: 4.4 * 72,
+      y: 3.6 * 72,
       size: 13,
       font: montserratFont,
       color: textColor,
@@ -151,7 +151,7 @@ export class CertificatesService {
 
     page.drawText(student.id.toString(), {
       x: 5.1 * 72,
-      y: 0.3 * 72,
+      y: 0.4 * 72,
       size: 12,
       font: montserratFont,
       color: textColor,
